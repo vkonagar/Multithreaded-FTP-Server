@@ -51,7 +51,7 @@ int read_request(int client_sock, char** command, char** arg)
 		else if( flag == 1 )
 		{
 			// ARGUMENT
-			argument[arg_pointer] = c;
+			argument[arg_pointer++] = c;
 		}
 	}
 	// Error handling
