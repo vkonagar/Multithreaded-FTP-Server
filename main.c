@@ -30,8 +30,8 @@ void client_function(void* var)
 	const char *inet_ntop(int af, const void *src,
 	                             char *dst, socklen_t size);
 	char ip[16];
-	printf("CLIENT CONNECTED - IP:%s PORT:%d\n",
-			inet_ntop(AF_INET, &((*client_addr).sin_addr),(void*)ip,16), ntohs(client_addr->sin_port)); 
+	inet_ntop(AF_INET, &((*client_addr).sin_addr),(void*)ip,16);
+	printf("CLIENT CONNECTED - IP:%s PORT:%d\n", ip, ntohs(client_addr->sin_port)); 
 	
 	struct sockaddr_in active_client_addr;
 	// Now send the greeting to the client.
@@ -61,18 +61,35 @@ void client_function(void* var)
 			// Argument is of form h1,h2,h3,h4,p1,p2
 			store_ip_port_active(arg,&active_client_addr);
 		}
+		else if( strcmp(command,"TYPE") == 0 )
+		{
+			Write(client_sock, type_ok, strlen(type_ok));
+		}
 		else if( strcmp(command,"QUIT") == 0 )
 		{
 			// Close socket
+			printf("Client %s:%d exited\n", ip, client_addr->sin_port);
 			close(client_sock);
 			// Kill this thread
 			pthread_exit(0);
 		}
-		else if( strcmp(command,"RETR") == 0 )
+		else if( (strcmp(command,"LIST") == 0 ) || (strcmp(command,"RETR") == 0 ))
 		{
 			// RETR
 			// Argument will have the file name
-			int file = open(arg,O_RDONLY);
+			int file;
+			if( strcmp(command,"LIST") ==  0)
+			{
+				// Execute the list command and store it in a file
+				system("ls -l > .list");
+				// Now open that file and send it to the client
+				file = open(".list",O_RDONLY);
+			}
+			else
+			{
+				file = open(arg,O_RDONLY);
+			}
+
 			if( file == -1 )
 			{
 				perror("Open");
@@ -108,6 +125,13 @@ void client_function(void* var)
 
 int main()
 {
+	// Change the current working directory to the FILES folder.
+	if( chdir("FILES") == -1 )
+	{
+		perror("CWD");
+		exit(0);
+	}
+
 	// This is the listen socket on 21
 	int listen_sock = Socket(AF_INET, SOCK_STREAM, 0);
 	struct sockaddr_in server_addr;

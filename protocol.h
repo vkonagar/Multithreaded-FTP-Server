@@ -18,6 +18,8 @@ char* file_ok = "150 File ok. Transferring\012";
 
 char* file_done = "226 File transferred\012";
 
+char* type_ok = "200 Type OK";
+
 void store_ip_port_active(char* arg,struct sockaddr_in* active_client_addr)
 {
 	// h1,h2,h3,h4,p1,p2 --> PORT parameter
