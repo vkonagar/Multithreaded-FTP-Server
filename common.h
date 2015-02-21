@@ -7,6 +7,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
 #include <assert.h>
 #define TRUE 1
 #define FALSE 0
@@ -28,6 +30,6 @@ typedef struct arguments
 
 #define REQ_COMMAND_LENGTH 10
 #define REQ_ARG_LENGTH 20
-
+#define BUFF_SIZE 1024
 
 #endif

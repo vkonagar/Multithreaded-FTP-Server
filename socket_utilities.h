@@ -10,7 +10,7 @@ int read_request(int client_sock, char** command, char** arg)
 	uint8_t flag = 0;
 	char c;
 	int err;
-	while( ( err = read(client_sock,&c,1 ) ) > 0 )
+	while( ( err = Read(client_sock,&c,1 ) ) > 0 )
 	{
 		if( c == ' ' )
 		{
@@ -54,16 +54,6 @@ int read_request(int client_sock, char** command, char** arg)
 			// ARGUMENT
 			argument[arg_pointer++] = c;
 		}
-	}
-	// Error handling
-	if( err == -1 )
-	{
-		printf("Error in read!\n");
-	}
-	else if( err == 0 )
-	{
-		printf("Client is killed, so exiting\n");
-		pthread_exit(0);
 	}
 }
 
@@ -142,25 +132,32 @@ int Read(int clientfd, char* buffer, int size)
 {
 	int char_count = size;
 	int chars_read = 0;
-	while( ( chars_read = read(clientfd, buffer + chars_read , char_count ) ) > 0 )
+	while( char_count > 0 )
 	{
-		char_count = char_count - chars_read;
-		if( char_count == 0 )
+		if( ( chars_read = read(clientfd, buffer + chars_read , char_count ) ) > 0 )
 		{
-			// All chars are read, break out
-			break;
+			char_count = char_count - chars_read;
+			if( char_count == 0 )
+			{
+				// All chars are read, break out
+				break;
+			}
+		}
+		if( chars_read == -1 )
+		{
+			if( errno == EINTR)
+				continue;
+			perror("Error in reading the line in readLine function : handle_client.h\n");
+			return -1;
+		}
+		else if( chars_read == 0 )
+		{
+			printf("Client's connection is terminated\n");
+			pthread_exit(0);
+			return 0;
 		}
 	}
-	if( chars_read == -1 )
-	{
-		perror("Error in reading the line in readLine function : handle_client.h\n");
-		return -1;
-	}
-	else if( chars_read == 0 )
-	{
-		printf("Client's connection is terminated\n");
-		return 0;
-	}
+	return size;
 }
 
 /*

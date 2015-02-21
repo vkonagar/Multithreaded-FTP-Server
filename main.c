@@ -61,10 +61,44 @@ void client_function(void* var)
 			// Argument is of form h1,h2,h3,h4,p1,p2
 			store_ip_port_active(arg,&active_client_addr);
 		}
+		else if( strcmp(command,"QUIT") == 0 )
+		{
+			// Close socket
+			close(client_sock);
+			// Kill this thread
+			pthread_exit(0);
+		}
 		else if( strcmp(command,"RETR") == 0 )
 		{
 			// RETR
 			// Argument will have the file name
+			int file = open(arg,O_RDONLY);
+			if( file == -1 )
+			{
+				perror("Open");
+				Write(client_sock, file_error, strlen(file_error));
+			}
+			Write(client_sock, file_ok, strlen(file_ok));
+			// Now transfer the file to the client
+			int data_sock = Socket(AF_INET, SOCK_STREAM, 0 );
+			// Connect to the port and IP given by client
+			if( connect(data_sock, (struct sockaddr*)&active_client_addr, sizeof(active_client_addr))  == -1 )
+			{
+				perror("Cant Connect");
+				break;
+			}
+			
+			// Now transfer the file.
+			int n;
+			char data_buff[BUFF_SIZE];
+			while( ( n = read(file, data_buff,BUFF_SIZE) ) > 0 )
+			{
+				Write( data_sock, data_buff, n);
+			}
+			// File transferred succesfully
+			// Send reply now
+			Write( client_sock, file_done, strlen(file_done));
+			close(data_sock);
 		}
 		free(command);
 		free(arg);
