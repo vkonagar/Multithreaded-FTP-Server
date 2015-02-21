@@ -10,14 +10,40 @@ void client_function(void* var)
 	struct arguments* args = (struct arguments*)var;	
 	// Copy the args to local variables
 	int client_sock = args->cli_sock;
+	assert(client_sock);
 	struct sockaddr_in* client_addr = args->cli_addr;
+	assert(client_addr);
 	// Print client details
 	const char *inet_ntop(int af, const void *src,
 	                             char *dst, socklen_t size);
 	char ip[16];
 	printf("CLIENT CONNECTED - IP:%s PORT:%d\n",
 			inet_ntop(AF_INET, &((*client_addr).sin_addr),(void*)ip,16), ntohs(client_addr->sin_port)); 
+	
+	// Now send the greeting to the client.
+	Write(client_sock, greeting, strlen(greeting));
+	for( ;; )
+	{
+		// Start serving the requests
+		char* command;
+		char* arg;
+		int err = read_request(client_sock, &command, &arg);
+		printf("%s : %s\n",command,arg);
+		if( strcmp(command,"USER") == 0 )
+		{
+			// USER REQUEST
+			Write(client_sock, allow_user, strlen(allow_user));
+		}
+		else if( strcmp(command,"SYST") == 0 )
+		{
+			// SYSTEM REQUEST
+			Write(client_sock, system_str, strlen(system_str));
+		}
+		free(command);
+		free(arg);
+	}
 }
+
 
 int main()
 {

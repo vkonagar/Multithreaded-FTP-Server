@@ -1,5 +1,87 @@
 #include "common.h"
 
+
+int read_request(int client_sock, char** command, char** arg)
+{
+	char* cmd = (char*)malloc(sizeof(char)*REQ_COMMAND_LENGTH);
+	char* argument = (char*)malloc(sizeof(char)*REQ_ARG_LENGTH);
+	int cmd_pointer = 0;
+	int arg_pointer = 0;
+	uint8_t flag = 0;
+	char c;
+	while( read(client_sock,&c,1 )!= -1 )
+	{
+		if( c == ' ' )
+		{
+			// Command is done, go with the argument
+			cmd[cmd_pointer] = '\0';
+			flag = 1;
+			continue;
+		}
+		else if( c == '\r' )
+		{
+			read(client_sock,&c,1);
+			if( c == '\n' )
+			{
+				argument[arg_pointer] = '\0';
+				if( command != NULL )
+					*command = cmd;
+
+				if( arg != NULL )
+				{
+					// Check if the argument is present
+					if( arg_pointer != 0)
+						*arg = argument;
+					else
+						*arg = NULL;
+				}
+				return;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		if( flag == 0 )
+		{
+			// COMMAND
+			cmd[cmd_pointer++] = c;
+		}
+		else if( flag == 1 )
+		{
+			// ARGUMENT
+			argument[arg_pointer] = c;
+		}
+	}
+	// Error handling
+	printf("Error in the client's request\nKilling client thread\n");
+	pthread_exit(0);
+}
+
+int skip_client_str(int client_sock)
+{
+	char c;
+	int flag = 0;
+	while( read(client_sock,&c,1) != -1 )
+	{
+		if( c == '\r' )
+		{	
+			read(client_sock,&c,1);
+			if( c == '\n' )
+			{		
+				flag = 1;
+				break;
+			}
+		}
+	}
+	if( flag == 0 )
+	{
+		printf("Client error\n");
+		exit(0);
+	}
+}
+
 int Socket(int domain, int type, int protocol)
 {
 	int ret = socket(domain,type,protocol);
@@ -106,3 +188,7 @@ int Write(int clientfd, char* buff, int len)
 		left_chars -= left_chars;
 	}
 }
+
+
+
+
