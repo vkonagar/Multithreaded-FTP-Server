@@ -2,10 +2,23 @@
 #include "socket_utilities.h"
 #include "protocol.h"
 
-// Runs the server socket on port 21
 
+void sig_term_handler()
+{
+	// Kill all threads
+	exit(0);
+}
+
+void sig_pipe_handler()
+{
+	printf("Client terminated\n");
+}
+
+// Runs the server socket on port 21
 void client_function(void* var)
 {
+	sigignore(SIGPIPE);
+	signal(SIGTERM, sig_term_handler);
 	// get the client socket
 	struct arguments* args = (struct arguments*)var;	
 	// Copy the args to local variables
@@ -20,6 +33,7 @@ void client_function(void* var)
 	printf("CLIENT CONNECTED - IP:%s PORT:%d\n",
 			inet_ntop(AF_INET, &((*client_addr).sin_addr),(void*)ip,16), ntohs(client_addr->sin_port)); 
 	
+	struct sockaddr_in active_client_addr;
 	// Now send the greeting to the client.
 	Write(client_sock, greeting, strlen(greeting));
 	for( ;; )
@@ -38,6 +52,19 @@ void client_function(void* var)
 		{
 			// SYSTEM REQUEST
 			Write(client_sock, system_str, strlen(system_str));
+		}
+		else if( strcmp(command,"PORT") == 0 )
+		{
+			// PORT COMMAND
+			// Send reply
+			Write(client_sock, port_reply, strlen(port_reply));
+			// Argument is of form h1,h2,h3,h4,p1,p2
+			store_ip_port_active(arg,&active_client_addr);
+		}
+		else if( strcmp(command,"RETR") == 0 )
+		{
+			// RETR
+			// Argument will have the file name
 		}
 		free(command);
 		free(arg);

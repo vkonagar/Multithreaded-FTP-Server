@@ -9,12 +9,12 @@ int read_request(int client_sock, char** command, char** arg)
 	int arg_pointer = 0;
 	uint8_t flag = 0;
 	char c;
-	while( read(client_sock,&c,1 )!= -1 )
+	int err;
+	while( ( err = read(client_sock,&c,1 ) ) > 0 )
 	{
 		if( c == ' ' )
 		{
 			// Command is done, go with the argument
-			cmd[cmd_pointer] = '\0';
 			flag = 1;
 			continue;
 		}
@@ -23,6 +23,7 @@ int read_request(int client_sock, char** command, char** arg)
 			read(client_sock,&c,1);
 			if( c == '\n' )
 			{
+				cmd[cmd_pointer] = '\0';
 				argument[arg_pointer] = '\0';
 				if( command != NULL )
 					*command = cmd;
@@ -55,8 +56,15 @@ int read_request(int client_sock, char** command, char** arg)
 		}
 	}
 	// Error handling
-	printf("Error in the client's request\nKilling client thread\n");
-	pthread_exit(0);
+	if( err == -1 )
+	{
+		printf("Error in read!\n");
+	}
+	else if( err == 0 )
+	{
+		printf("Client is killed, so exiting\n");
+		pthread_exit(0);
+	}
 }
 
 int skip_client_str(int client_sock)
