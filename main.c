@@ -126,8 +126,10 @@ void client_function(void* var)
 			close(data_sock);
 			Write( client_sock, file_done, strlen(file_done));
 		}
-		free(command);
-		free(arg);
+		if( command!=NULL )
+			free(command);
+		if( arg!=NULL )
+			free(arg);
 	}
 	close(client_sock);
 	pthread_exit(0);
