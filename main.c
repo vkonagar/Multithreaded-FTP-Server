@@ -109,7 +109,7 @@ void client_function(void* var)
 			if( connect(data_sock, (struct sockaddr*)&active_client_addr, sizeof(active_client_addr))  == -1 )
 			{
 				printf("Cant Connect to %d\n", ntohs(active_client_addr.sin_port));
-				inet_ntop(AF_INET, &((*client_addr).sin_addr),(void*)ip,16);
+				inet_ntop(AF_INET, &(active_client_addr.sin_addr),(void*)ip,16);
 				printf("Can't connect to IP: %s\n",ip);	
 				break;
 			}

@@ -78,6 +78,6 @@ void store_ip_port_active(char* arg,struct sockaddr_in* active_client_addr)
 	printf(" IP : %s Port: %u\n",ip,port);	
 	active_client_addr->sin_port = htons(port);
 	active_client_addr->sin_family = AF_INET;
-	inet_pton(ip,&(active_client_addr->sin_addr));
+	inet_pton(AF_INET, ip, &(active_client_addr->sin_addr));
 	return;
 }
