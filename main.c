@@ -2,7 +2,6 @@
 #include "socket_utilities.h"
 #include "protocol.h"
 
-
 void sig_term_handler()
 {
 	// Kill all threads
@@ -34,6 +33,7 @@ void client_function(void* var)
 	printf("CLIENT CONNECTED - IP:%s PORT:%d\n", ip, ntohs(client_addr->sin_port)); 
 	
 	struct sockaddr_in active_client_addr;
+	bzero((void*)&active_client_addr,sizeof(active_client_addr));
 	// Now send the greeting to the client.
 	Write(client_sock, greeting, strlen(greeting));
 	for( ;; )
@@ -69,9 +69,7 @@ void client_function(void* var)
 		{
 			// Close socket
 			printf("Client %s:%d exited\n", ip, client_addr->sin_port);
-			close(client_sock);
-			// Kill this thread
-			pthread_exit(0);
+			break;
 		}
 		else if( (strcmp(command,"LIST") == 0 ) || (strcmp(command,"RETR") == 0 ))
 		{
@@ -99,9 +97,20 @@ void client_function(void* var)
 			// Now transfer the file to the client
 			int data_sock = Socket(AF_INET, SOCK_STREAM, 0 );
 			// Connect to the port and IP given by client
+		
+			/*	
+			struct sockaddr_in server_addr;
+        		server_addr.sin_port = htons(20);
+       	 		server_addr.sin_family = AF_INET;
+       			server_addr.sin_addr.s_addr = htons(INADDR_ANY);	
+		
+			Bind(data_sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
+			*/
 			if( connect(data_sock, (struct sockaddr*)&active_client_addr, sizeof(active_client_addr))  == -1 )
 			{
-				perror("Cant Connect");
+				printf("Cant Connect to %d\n", ntohs(active_client_addr.sin_port));
+				inet_ntop(AF_INET, &((*client_addr).sin_addr),(void*)ip,16);
+				printf("Can't connect to IP: %s\n",ip);	
 				break;
 			}
 			
@@ -114,19 +123,21 @@ void client_function(void* var)
 			}
 			// File transferred succesfully
 			// Send reply now
-			Write( client_sock, file_done, strlen(file_done));
 			close(data_sock);
+			Write( client_sock, file_done, strlen(file_done));
 		}
 		free(command);
 		free(arg);
 	}
+	close(client_sock);
+	pthread_exit(0);
 }
 
 
 int main()
 {
 	// Change the current working directory to the FILES folder.
-	if( chdir("FILES") == -1 )
+	if( chdir("../FTP_FILES") == -1 )
 	{
 		perror("CWD");
 		exit(0);

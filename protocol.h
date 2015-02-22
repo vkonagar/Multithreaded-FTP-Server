@@ -42,6 +42,7 @@ void store_ip_port_active(char* arg,struct sockaddr_in* active_client_addr)
 			}
 			count++;
 			ip[i] = '.';
+			continue;
 		}
 		ip[i] = arg[i];
 	}
@@ -73,7 +74,8 @@ void store_ip_port_active(char* arg,struct sockaddr_in* active_client_addr)
 			p2[p2_count++] = arg[i];
 		}
 	}
-	int port = (atoi(p1)*256)+atoi(p2);
+	uint16_t port = (atoi(p1)*256)+atoi(p2);
+	printf(" IP : %s Port: %u\n",ip,port);	
 	active_client_addr->sin_port = htons(port);
 	active_client_addr->sin_family = AF_INET;
 	inet_pton(ip,&(active_client_addr->sin_addr));
