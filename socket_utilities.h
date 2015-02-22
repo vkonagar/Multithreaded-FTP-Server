@@ -1,10 +1,16 @@
 #include "common.h"
 
+#ifndef PROTO
+#define PROTO
+#include "protocol.h"
+#endif
 
-int read_request(int client_sock, char** command, char** arg)
+ftp_reply_t* read_request(int client_sock)
 {
-	char* cmd = (char*)malloc(sizeof(char)*REQ_COMMAND_LENGTH);
-	char* argument = (char*)malloc(sizeof(char)*REQ_ARG_LENGTH);
+	
+	ftp_reply_t* reply = (ftp_reply_t*)malloc(sizeof(ftp_reply_t));
+	char* cmd = reply->command;
+	char* argument = reply->arg;
 	int cmd_pointer = 0;
 	int arg_pointer = 0;
 	uint8_t flag = 0;
@@ -25,18 +31,7 @@ int read_request(int client_sock, char** command, char** arg)
 			{
 				cmd[cmd_pointer] = '\0';
 				argument[arg_pointer] = '\0';
-				if( command != NULL )
-					*command = cmd;
-
-				if( arg != NULL )
-				{
-					// Check if the argument is present
-					if( arg_pointer != 0)
-						*arg = argument;
-					else
-						*arg = NULL;
-				}
-				return;
+				return reply;
 			}
 			else
 			{
@@ -55,6 +50,7 @@ int read_request(int client_sock, char** command, char** arg)
 			argument[arg_pointer++] = c;
 		}
 	}
+	return NULL;
 }
 
 int skip_client_str(int client_sock)

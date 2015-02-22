@@ -20,6 +20,19 @@ char* file_done = "226 File transferred\012";
 
 char* type_ok = "200 Type OK\012";
 
+typedef struct ftp_reply
+{
+	char command[REQ_COMMAND_LENGTH];
+	char arg[REQ_ARG_LENGTH]; 
+}ftp_reply_t;
+
+
+void free_stuff(struct ftp_reply* reply)
+{
+        if( reply != NULL )
+                free(reply);
+}
+
 void store_ip_port_active(char* arg,struct sockaddr_in* active_client_addr)
 {
 	// h1,h2,h3,h4,p1,p2 --> PORT parameter

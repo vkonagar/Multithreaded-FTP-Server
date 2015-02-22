@@ -1,6 +1,9 @@
 #include "common.h"
-#include "socket_utilities.h"
+#ifndef PROTO
+#define PROTO
 #include "protocol.h"
+#endif
+#include "socket_utilities.h"
 
 void sig_term_handler()
 {
@@ -39,10 +42,13 @@ void client_function(void* var)
 	// Command and arg to be recieved from the client
 	char* command;
 	char* arg;
+	ftp_reply_t* reply;
 	for( ;; )
 	{
 		// Start serving the requests
-		int err = read_request(client_sock, &command, &arg);
+		reply = read_request(client_sock);
+		command = reply->command;
+		arg = reply->arg;
 		printf("%s : %s\n",command,arg);
 		if( strcmp(command,"USER") == 0 )
 		{
@@ -93,7 +99,7 @@ void client_function(void* var)
 			{
 				perror("Open");
 				Write(client_sock, file_error, strlen(file_error));
-				free_stuff(command,arg);
+				free_stuff(reply);
 				continue;
 			}
 			Write(client_sock, file_ok, strlen(file_ok));
@@ -129,9 +135,9 @@ void client_function(void* var)
 			close(data_sock);
 			Write( client_sock, file_done, strlen(file_done));
 		}
-		free_stuff(command,arg);
+		free_stuff(reply);
 	}
-	free_stuff(command,arg);
+	free_stuff(reply);
 	close(client_sock);
 	pthread_exit(0);
 }
