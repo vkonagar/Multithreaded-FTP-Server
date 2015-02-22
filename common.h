@@ -27,6 +27,18 @@ typedef struct arguments
 	struct sockaddr_in* cli_addr;
 }arguments_t;
 
+void free_stuff(char* command, char*arg)
+{
+	printf("freeing stuff\n");
+	if( command!=NULL )
+        {
+	   //     free(command);
+        }
+        if( arg!=NULL )
+        {
+        //	free(arg);
+        }
+}
 
 #define REQ_COMMAND_LENGTH 10
 #define REQ_ARG_LENGTH 20

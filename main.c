@@ -36,11 +36,12 @@ void client_function(void* var)
 	bzero((void*)&active_client_addr,sizeof(active_client_addr));
 	// Now send the greeting to the client.
 	Write(client_sock, greeting, strlen(greeting));
+	// Command and arg to be recieved from the client
+	char* command;
+	char* arg;
 	for( ;; )
 	{
 		// Start serving the requests
-		char* command;
-		char* arg;
 		int err = read_request(client_sock, &command, &arg);
 		printf("%s : %s\n",command,arg);
 		if( strcmp(command,"USER") == 0 )
@@ -92,6 +93,8 @@ void client_function(void* var)
 			{
 				perror("Open");
 				Write(client_sock, file_error, strlen(file_error));
+				free_stuff(command,arg);
+				continue;
 			}
 			Write(client_sock, file_ok, strlen(file_ok));
 			// Now transfer the file to the client
@@ -126,11 +129,9 @@ void client_function(void* var)
 			close(data_sock);
 			Write( client_sock, file_done, strlen(file_done));
 		}
-		if( command!=NULL )
-			free(command);
-		if( arg!=NULL )
-			free(arg);
+		free_stuff(command,arg);
 	}
+	free_stuff(command,arg);
 	close(client_sock);
 	pthread_exit(0);
 }
