@@ -11,5 +11,8 @@ A multithreaded FTP server, which is efficient, fast, scalable. It handles most 
 * run make to compile the code.
 * run ftp_server( executable ) file.
 
+### File serve directory
+* it only serves files on the directory named FTP_FILES on previous (..) to the current directory where the exe is run.
+
 ### Architecture details.
 * A new thread is spawned for each client.
