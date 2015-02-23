@@ -100,7 +100,6 @@ int Accept(int sockfd, struct sockaddr* cliaddr, socklen_t* addrlen)
 	if( ret == -1 )
 	{
 		perror("TCP server cannot accept incoming clients \n");
-		exit(0);
 	}
 	return ret;
 }

@@ -19,7 +19,7 @@
 #include <sys/types.h>
 
 #define BACKLOG 100
-#define MAX_OPEN_DESC 10
+#define MAX_OPEN_DESC 1024
 
 typedef struct arguments
 {

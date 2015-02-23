@@ -181,7 +181,7 @@ int main()
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	// Set stack size to 1 MB
- 	pthread_attr_setstacksize(&attr,1024*1024);
+ 	pthread_attr_setstacksize(&attr,512*1024);
 	
 	// Create a client addr structure
 	struct sockaddr_in client_addr;
@@ -192,6 +192,10 @@ int main()
 	{
 		printf("LISTENING FOR CLIENTS\n");
 		client_sock = Accept(listen_sock, (struct sockaddr*)&client_addr, &client_addr_len);
+		if( client_sock == -1 )
+		{
+			continue;
+		}
 		// Now create a new thread for this client.	
 		// Pass the client sock fd as the argument.
 		if( pthread_create(&pid, &attr, (void*)client_function, (void*)client_sock ) != 0 )
