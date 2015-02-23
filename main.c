@@ -8,74 +8,85 @@
 void sig_term_handler()
 {
 	// Kill all threads
+	printf("FTP Server exiting\n");
 	exit(0);
 }
 
 void sig_pipe_handler()
 {
-	printf("Client terminated\n");
+	printf("Client terminated because of Pipe termination\n");
 }
 
 // Runs the server socket on port 21
 void client_function(void* var)
 {
-	sigignore(SIGPIPE);
-	signal(SIGTERM, sig_term_handler);
+	// All open descriptors are stored here for the client
+	int open_desc[MAX_OPEN_DESC];
+	int open_desc_count = 0;
 	// get the client socket
-	struct arguments* args = (struct arguments*)var;	
 	// Copy the args to local variables
-	int client_sock = args->cli_sock;
+	int client_sock = (int)var;
+	// Add fd to the list
+	open_desc[open_desc_count++] = client_sock;
 	assert(client_sock);
-	struct sockaddr_in* client_addr = args->cli_addr;
-	assert(client_addr);
-	// Print client details
-	const char *inet_ntop(int af, const void *src,
-	                             char *dst, socklen_t size);
-	char ip[16];
-	inet_ntop(AF_INET, &((*client_addr).sin_addr),(void*)ip,16);
-	printf("CLIENT CONNECTED - IP:%s PORT:%d\n", ip, ntohs(client_addr->sin_port)); 
+
+	printf("Client connected\n");
 	
+	// This structure is for data connection
 	struct sockaddr_in active_client_addr;
+	// This is for the requests
+	ftp_request_t request;
+	// Clear the contents
 	bzero((void*)&active_client_addr,sizeof(active_client_addr));
+	bzero((void*)&request,sizeof(request));
 	// Now send the greeting to the client.
-	Write(client_sock, greeting, strlen(greeting));
+	Write(client_sock, greeting, strlen(greeting), open_desc, open_desc_count);
 	// Command and arg to be recieved from the client
+	
 	char* command;
 	char* arg;
-	ftp_reply_t* reply;
 	for( ;; )
 	{
 		// Start serving the requests
-		reply = read_request(client_sock);
-		command = reply->command;
-		arg = reply->arg;
+		// This method will overwrite the existing command and arg
+		if( read_request(client_sock, &request, open_desc, open_desc_count) ==  0 )
+		{
+			printf("Bad Command\n");
+			Write(client_sock, error, strlen(error), open_desc, open_desc_count);
+			break;
+		}
+		// get the command and arg from the structure
+		command = request.command;
+		arg = request.arg;
 		printf("%s : %s\n",command,arg);
+		
+		// Process the command
 		if( strcmp(command,"USER") == 0 )
 		{
 			// USER REQUEST
-			Write(client_sock, allow_user, strlen(allow_user));
+			Write(client_sock, allow_user, strlen(allow_user), open_desc, open_desc_count);
 		}
 		else if( strcmp(command,"SYST") == 0 )
 		{
 			// SYSTEM REQUEST
-			Write(client_sock, system_str, strlen(system_str));
+			Write(client_sock, system_str, strlen(system_str), open_desc, open_desc_count);
 		}
 		else if( strcmp(command,"PORT") == 0 )
 		{
 			// PORT COMMAND
 			// Send reply
-			Write(client_sock, port_reply, strlen(port_reply));
+			Write(client_sock, port_reply, strlen(port_reply), open_desc, open_desc_count);
 			// Argument is of form h1,h2,h3,h4,p1,p2
 			store_ip_port_active(arg,&active_client_addr);
 		}
 		else if( strcmp(command,"TYPE") == 0 )
 		{
-			Write(client_sock, type_ok, strlen(type_ok));
+			Write(client_sock, type_ok, strlen(type_ok), open_desc, open_desc_count);
 		}
 		else if( strcmp(command,"QUIT") == 0 )
 		{
-			// Close socket
-			printf("Client %s:%d exited\n", ip, client_addr->sin_port);
+			// Child exited
+			// break and free the client_sock
 			break;
 		}
 		else if( (strcmp(command,"LIST") == 0 ) || (strcmp(command,"RETR") == 0 ))
@@ -98,53 +109,55 @@ void client_function(void* var)
 			if( file == -1 )
 			{
 				perror("Open");
-				Write(client_sock, file_error, strlen(file_error));
-				free_stuff(reply);
-				continue;
-			}
-			Write(client_sock, file_ok, strlen(file_ok));
-			// Now transfer the file to the client
-			int data_sock = Socket(AF_INET, SOCK_STREAM, 0 );
-			// Connect to the port and IP given by client
-		
-			/*	
-			struct sockaddr_in server_addr;
-        		server_addr.sin_port = htons(20);
-       	 		server_addr.sin_family = AF_INET;
-       			server_addr.sin_addr.s_addr = htons(INADDR_ANY);	
-		
-			Bind(data_sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
-			*/
-			if( connect(data_sock, (struct sockaddr*)&active_client_addr, sizeof(active_client_addr))  == -1 )
-			{
-				printf("Cant Connect to %d\n", ntohs(active_client_addr.sin_port));
-				inet_ntop(AF_INET, &(active_client_addr.sin_addr),(void*)ip,16);
-				printf("Can't connect to IP: %s\n",ip);	
+				Write(client_sock, file_error, strlen(file_error), open_desc, open_desc_count);
+				// If the file open has error, quit the connection.
 				break;
 			}
+			// FILE OK
+			open_desc[open_desc_count++] = file;
+
+			Write(client_sock, file_ok, strlen(file_ok), open_desc, open_desc_count);
 			
+			// Now transfer the file to the client
+			int data_sock = Socket(AF_INET, SOCK_STREAM, 0, open_desc, open_desc_count);
+			open_desc[open_desc_count++] = data_sock;	
+			
+			if( connect(data_sock, (struct sockaddr*)&active_client_addr, sizeof(active_client_addr))  == -1 )
+			{
+				printf("Cant establish data connection to %d\n", ntohs(active_client_addr.sin_port));
+				// Close existing fd's related to this command
+				break;
+			}
 			// Now transfer the file.
 			int n;
 			char data_buff[BUFF_SIZE];
-			while( ( n = read(file, data_buff,BUFF_SIZE) ) > 0 )
+			while( ( n = Read(file, data_buff,BUFF_SIZE, open_desc, open_desc_count) ) > 0 )
 			{
-				Write( data_sock, data_buff, n);
+				Write( data_sock, data_buff, n, open_desc, open_desc_count);
 			}
 			// File transferred succesfully
 			// Send reply now
-			close(data_sock);
-			Write( client_sock, file_done, strlen(file_done));
+			Write( client_sock, file_done, strlen(file_done), open_desc, open_desc_count);
+			break;
 		}
-		free_stuff(reply);
+		else
+		{
+			Write( client_sock, error, strlen(error), open_desc, open_desc_count);
+		}
 	}
-	free_stuff(reply);
-	close(client_sock);
+	Write( client_sock, close_con, strlen(close_con), open_desc, open_desc_count);
+	printf("Closing client connection and killing THREAD\n");
+	clean_all_fds(open_desc,open_desc_count);
 	pthread_exit(0);
 }
 
 
 int main()
 {
+	int open_desc[1];
+	int open_desc_count;
+	sigignore(SIGPIPE);
+	signal(SIGTERM, sig_term_handler);
 	// Change the current working directory to the FILES folder.
 	if( chdir("../FTP_FILES") == -1 )
 	{
@@ -153,7 +166,7 @@ int main()
 	}
 
 	// This is the listen socket on 21
-	int listen_sock = Socket(AF_INET, SOCK_STREAM, 0);
+	int listen_sock = Socket(AF_INET, SOCK_STREAM, 0, open_desc, open_desc_count);
 	struct sockaddr_in server_addr;
 	
 	server_addr.sin_port = htons(21);
@@ -174,15 +187,12 @@ int main()
 	{
 		printf("LISTENING FOR CLIENTS\n");
 		client_sock = Accept(listen_sock, (struct sockaddr*)&client_addr, &client_addr_len);
-		// Pack the arguments for the client
-		struct arguments* args = (struct arguments*)malloc(sizeof(struct arguments));
-		args->cli_sock = client_sock;
-		args->cli_addr = (struct sockaddr_in*)malloc(sizeof(struct sockaddr_in));
-		memcpy(args->cli_addr, &client_addr, sizeof(client_addr));
 		// Now create a new thread for this client.	
-		if( pthread_create(&pid, NULL, (void*)client_function, (void*)args ) != 0 )
+		// Pass the client sock fd as the argument.
+		if( pthread_create(&pid, NULL, (void*)client_function, (void*)client_sock ) != 0 )
 		{
 			perror("pthread create in main");
+			close(client_sock);
 		}
 	}
 }

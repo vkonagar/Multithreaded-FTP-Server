@@ -18,14 +18,22 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#define BACKLOG 5
+#define BACKLOG 100
+#define MAX_OPEN_DESC 10
 
 typedef struct arguments
 {
 	int cli_sock;
-	struct sockaddr_in* cli_addr;
 }arguments_t;
 
+void clean_all_fds(int fd[],int count)
+{
+	int i;
+	for(i=0;i<count;i++)
+	{
+		close(fd[i]);
+	}
+}
 
 #define REQ_COMMAND_LENGTH 20
 #define REQ_ARG_LENGTH 40

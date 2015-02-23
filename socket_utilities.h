@@ -5,18 +5,16 @@
 #include "protocol.h"
 #endif
 
-ftp_reply_t* read_request(int client_sock)
+int read_request(int client_sock, ftp_request_t* request, int* open_desc, int open_desc_count)
 {
-	
-	ftp_reply_t* reply = (ftp_reply_t*)malloc(sizeof(ftp_reply_t));
-	char* cmd = reply->command;
-	char* argument = reply->arg;
+	char* cmd = request->command;
+	char* argument = request->arg;
 	int cmd_pointer = 0;
 	int arg_pointer = 0;
 	uint8_t flag = 0;
 	char c;
 	int err;
-	while( ( err = Read(client_sock,&c,1 ) ) > 0 )
+	while( ( err = Read(client_sock,&c,1, open_desc, open_desc_count) ) > 0 )
 	{
 		if( c == ' ' )
 		{
@@ -26,12 +24,12 @@ ftp_reply_t* read_request(int client_sock)
 		}
 		else if( c == '\r' )
 		{
-			read(client_sock,&c,1);
+			Read(client_sock,&c,1, open_desc, open_desc_count);
 			if( c == '\n' )
 			{
 				cmd[cmd_pointer] = '\0';
 				argument[arg_pointer] = '\0';
-				return reply;
+				return 1;
 			}
 			else
 			{
@@ -50,39 +48,22 @@ ftp_reply_t* read_request(int client_sock)
 			argument[arg_pointer++] = c;
 		}
 	}
-	return NULL;
+	return 0;
 }
 
-int skip_client_str(int client_sock)
-{
-	char c;
-	int flag = 0;
-	while( read(client_sock,&c,1) != -1 )
-	{
-		if( c == '\r' )
-		{	
-			read(client_sock,&c,1);
-			if( c == '\n' )
-			{		
-				flag = 1;
-				break;
-			}
-		}
-	}
-	if( flag == 0 )
-	{
-		printf("Client error\n");
-		exit(0);
-	}
-}
-
-int Socket(int domain, int type, int protocol)
+int Socket(int domain, int type, int protocol, int* open_desc, int open_desc_count)
 {
 	int ret = socket(domain,type,protocol);
 	if( ret == -1 )
 	{
 		perror("Error in creating TCP socket!");
-		exit(0);
+		// If there is any other fd to be closed, it is passed her ( FTP control connection, when data connection has the error);
+		int i;
+		for(i=0;i<open_desc_count;i++)
+		{
+			close(open_desc[i]);
+		}
+		pthread_exit(0);
 	}
 	return ret;
 }
@@ -124,15 +105,17 @@ int Accept(int sockfd, struct sockaddr* cliaddr, socklen_t* addrlen)
 	return ret;
 }
 
-int Read(int clientfd, char* buffer, int size)
+int Read(int clientfd, char* buffer, int size, int* open_desc, int open_desc_count)
 {
 	int char_count = size;
 	int chars_read = 0;
+	int total_read = 0;
 	while( char_count > 0 )
 	{
 		if( ( chars_read = read(clientfd, buffer + chars_read , char_count ) ) > 0 )
 		{
 			char_count = char_count - chars_read;
+			total_read = total_read + chars_read;
 			if( char_count == 0 )
 			{
 				// All chars are read, break out
@@ -144,13 +127,19 @@ int Read(int clientfd, char* buffer, int size)
 			if( errno == EINTR)
 				continue;
 			perror("Error in reading the line in readLine function : handle_client.h\n");
-			return -1;
+			// Clean up fd and exit the thread
+			close(clientfd);
+			// If there is any other fd to be closed, it is passed her ( FTP control connection, when data connection has the error);
+			int i;
+			for(i=0;i<open_desc_count;i++)
+			{
+				close(open_desc[i]);
+			}
+			pthread_exit(0);
 		}
 		else if( chars_read == 0 )
 		{
-			printf("Client's connection is terminated\n");
-			pthread_exit(0);
-			return 0;
+			return total_read;
 		}
 	}
 	return size;
@@ -162,7 +151,7 @@ int Read(int clientfd, char* buffer, int size)
 	then the client's node is invalidated by setting reachable=0 and will be ultimately deleted by the monitor thread.
 */
 
-int Write(int clientfd, char* buff, int len)
+int Write(int clientfd, char* buff, int len,  int* open_desc, int open_desc_count)
 {
 	int left_chars = len;
 	int written_chars = 0;
@@ -182,7 +171,15 @@ int Write(int clientfd, char* buff, int len)
 			else
 			{
 				perror("Error with writing\n");
-				exit(0);
+				// Clean up fd and exit the thread
+				close(clientfd);
+				// If there is any other fd to be closed, it is passed her ( FTP control connection, when data connection has the error);
+				int i;
+				for(i=0;i<open_desc_count;i++)
+				{
+					close(open_desc[i]);
+				}
+				pthread_exit(0);
 			}
 		}
 		written_chars += temp;

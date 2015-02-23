@@ -20,18 +20,16 @@ char* file_done = "226 File transferred\012";
 
 char* type_ok = "200 Type OK\012";
 
-typedef struct ftp_reply
+char* error = "451 Bad command\012";
+
+char* close_con = "221 close\012";
+
+typedef struct ftp_request
 {
 	char command[REQ_COMMAND_LENGTH];
 	char arg[REQ_ARG_LENGTH]; 
-}ftp_reply_t;
+}ftp_request_t;
 
-
-void free_stuff(struct ftp_reply* reply)
-{
-        if( reply != NULL )
-                free(reply);
-}
 
 void store_ip_port_active(char* arg,struct sockaddr_in* active_client_addr)
 {
