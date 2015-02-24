@@ -24,8 +24,15 @@ int read_request(int client_sock, ftp_request_t* request, int* open_desc, int op
 		}
 		else if( c == '\r' )
 		{
-			Read(client_sock,&c,1, open_desc, open_desc_count);
-			if( c == '\n' )
+			if( Read(client_sock,&c,1, open_desc, open_desc_count) == 0 )
+			{
+				// No \n to read
+				printf("\n NO \\n to READ READDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\n");
+				cmd[cmd_pointer] = '\0';
+                                argument[arg_pointer] = '\0';
+                                return 1;
+			}
+			else if( c == '\n' )
 			{
 				cmd[cmd_pointer] = '\0';
 				argument[arg_pointer] = '\0';
@@ -48,6 +55,7 @@ int read_request(int client_sock, ftp_request_t* request, int* open_desc, int op
 			argument[arg_pointer++] = c;
 		}
 	}
+	printf(" ARGGGGGGGGGG: %s\nCOMMAND:%s\n\n\n",argument,cmd);
 	return 0;
 }
 
@@ -57,12 +65,14 @@ int Socket(int domain, int type, int protocol, int* open_desc, int open_desc_cou
 	if( ret == -1 )
 	{
 		perror("Error in creating TCP socket!");
+		printf("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\n");
 		// If there is any other fd to be closed, it is passed her ( FTP control connection, when data connection has the error);
 		int i;
 		for(i=0;i<open_desc_count;i++)
 		{
 			close(open_desc[i]);
 		}
+		decrement_thread_count();
 		pthread_exit(0);
 	}
 	return ret;
@@ -125,6 +135,7 @@ int Read(int clientfd, char* buffer, int size, int* open_desc, int open_desc_cou
 		{
 			if( errno == EINTR)
 				continue;
+			printf("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\n");
 			perror("Error in reading the line in readLine function : handle_client.h\n");
 			// Clean up fd and exit the thread
 			close(clientfd);
@@ -134,6 +145,7 @@ int Read(int clientfd, char* buffer, int size, int* open_desc, int open_desc_cou
 			{
 				close(open_desc[i]);
 			}
+			decrement_thread_count();
 			pthread_exit(0);
 		}
 		else if( chars_read == 0 )
@@ -169,6 +181,7 @@ int Write(int clientfd, char* buff, int len,  int* open_desc, int open_desc_coun
 			}
 			else
 			{
+				printf("ERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR\n");
 				perror("Error with writing\n");
 				// Clean up fd and exit the thread
 				close(clientfd);
@@ -178,6 +191,7 @@ int Write(int clientfd, char* buff, int len,  int* open_desc, int open_desc_coun
 				{
 					close(open_desc[i]);
 				}
+				decrement_thread_count();
 				pthread_exit(0);
 			}
 		}

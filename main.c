@@ -20,6 +20,7 @@ void sig_pipe_handler()
 // Runs the server socket on port 21
 void client_function(void* var)
 {
+	increment_thread_count();
 	// All open descriptors are stored here for the client
 	int open_desc[MAX_OPEN_DESC];
 	int open_desc_count = 0;
@@ -30,7 +31,7 @@ void client_function(void* var)
 	open_desc[open_desc_count++] = client_sock;
 	assert(client_sock);
 
-	printf("Client connected\n");
+	//printf("Client connected\n");
 	
 	// This structure is for data connection
 	struct sockaddr_in active_client_addr;
@@ -58,7 +59,7 @@ void client_function(void* var)
 		// get the command and arg from the structure
 		command = request.command;
 		arg = request.arg;
-		printf("%s : %s\n",command,arg);
+		//printf("%s : %s\n",command,arg);
 		
 		// Process the command
 		if( strcmp(command,"USER") == 0 )
@@ -126,6 +127,7 @@ void client_function(void* var)
 			{
 				printf("Cant establish data connection to %d\n", ntohs(active_client_addr.sin_port));
 				// Close existing fd's related to this command
+				//exit(0);
 				break;
 			}
 			// Now transfer the file.
@@ -143,11 +145,14 @@ void client_function(void* var)
 		else
 		{
 			Write( client_sock, error, strlen(error), open_desc, open_desc_count);
+			break;
 		}
 	}
 	Write( client_sock, close_con, strlen(close_con), open_desc, open_desc_count);
-	printf("Closing client connection and killing THREAD\n");
+	sleep(1);
+	//printf("Closing client connection and killing THREAD\n");
 	clean_all_fds(open_desc,open_desc_count);
+	decrement_thread_count();
 	pthread_exit(0);
 }
 
@@ -201,10 +206,17 @@ int main()
 	struct sockaddr_in client_addr;
 	int client_addr_len = 0;
 	int client_sock;
+	// Monitoring thread
+	if( pthread_create(&pid, &attr, (void*)monitoring_thread, NULL ) != 0 )
+        {
+        	perror("pthread create in main");
+        	close(client_sock);
+        }
+	
 	// Accept the connections
 	while( TRUE )
 	{
-		printf("LISTENING FOR CLIENTS\n");
+		//printf("LISTENING FOR CLIENTS\n");
 		client_sock = Accept(listen_sock, (struct sockaddr*)&client_addr, &client_addr_len);
 		if( client_sock == -1 )
 		{

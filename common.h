@@ -27,12 +27,46 @@ typedef struct arguments
 	int cli_sock;
 }arguments_t;
 
+int threads_active = 0;
+
+pthread_mutex_t mutex;
+
+void increment_thread_count()
+{
+        // Lock
+        pthread_mutex_lock(&mutex);
+        threads_active++;
+        // Unlock
+        pthread_mutex_unlock(&mutex);
+}
+
+void decrement_thread_count()
+{
+
+        // Lock
+        pthread_mutex_lock(&mutex);
+        threads_active--;
+        // Unlock
+        pthread_mutex_unlock(&mutex);
+}
+
 void clean_all_fds(int fd[],int count)
 {
 	int i;
 	for(i=0;i<count;i++)
 	{
 		close(fd[i]);
+	}
+}
+
+
+
+int monitoring_thread()
+{
+	while(1)
+	{
+		sleep(5);
+		printf("Current threads: %d\n",threads_active);
 	}
 }
 
