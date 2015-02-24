@@ -23,3 +23,4 @@ A tiny multithreaded FTP server, which is efficient, fast, scalable. It handles 
 * [2]: http://www.jamescoyle.net/how-to/943-create-a-ram-disk-in-linux
 * [3]: http://www.cyberciti.biz/faq/linux-tcp-tuning/
 * [4]: http://stackoverflow.com/questions/13988780/too-many-open-files-ulimit-already-changed
+* [5]: http://askubuntu.com/questions/181215/too-many-open-files-how-to-find-the-culprit
