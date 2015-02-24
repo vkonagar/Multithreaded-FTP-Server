@@ -181,8 +181,22 @@ int main()
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	// Set stack size to 1 MB
- 	pthread_attr_setstacksize(&attr,512*1024);
-	
+ 	if( pthread_attr_setstacksize(&attr,512*1024) == -1 )
+	{
+		perror("Stack size set");
+		exit(0);
+	}
+	printf("Stack size set to 512 KB\n");
+	// Set MAX FD's to 50000
+	struct rlimit res;
+	res.rlim_cur = 50000;
+	res.rlim_max = 50000;
+	if( setrlimit(RLIMIT_NOFILE, &res) == -1 )
+	{
+		perror("Resource FD limit");
+		exit(0);
+	}
+	printf("FD limit set to 50000\n");
 	// Create a client addr structure
 	struct sockaddr_in client_addr;
 	int client_addr_len = 0;

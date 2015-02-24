@@ -1,6 +1,7 @@
 #ifndef COMMON_HEADERS
 #define COMMON_HEADERS
 
+#include <sys/resource.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
