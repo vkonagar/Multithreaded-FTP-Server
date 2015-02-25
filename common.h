@@ -70,6 +70,8 @@ int monitoring_thread()
 	}
 }
 
+
+
 #define REQ_COMMAND_LENGTH 20
 #define REQ_ARG_LENGTH 40
 #define BUFF_SIZE 1024
