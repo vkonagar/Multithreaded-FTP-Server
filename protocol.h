@@ -24,6 +24,8 @@ char* error = "451 Bad command\012";
 
 char* close_con = "221 close\012";
 
+char* data_open_error = "425 Can't open data connection\012";
+
 typedef struct ftp_request
 {
 	char command[REQ_COMMAND_LENGTH];

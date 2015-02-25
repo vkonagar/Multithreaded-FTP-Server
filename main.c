@@ -33,7 +33,7 @@ void client_function(void* var)
 	// Check the default sheduling policy.
 	if( policy == SCHED_RR )
 	{
-		printf("THREAD: Its SCHED_RR and priority is 0\n");
+		printf("THREAD: Its SCHED_RR\n");
 	}
 	printf("THREAD: My priority is %d\n",sp.sched_priority);
 	// All open descriptors are stored here for the client
@@ -142,8 +142,7 @@ void client_function(void* var)
 			{
 				printf("Cant establish data connection to %d\n", ntohs(active_client_addr.sin_port));
 				// Close existing fd's related to this command
-				//exit(0);
-				break;
+				Write(client_sock, data_open_error, strlen(data_open_error), open_desc, open_desc_count);
 			}
 			// Now transfer the file.
 			int n;
