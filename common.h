@@ -10,6 +10,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <pthread.h>
 #include <assert.h>
 #define TRUE 1
 #define FALSE 0
@@ -21,6 +22,9 @@
 
 #define BACKLOG 100
 #define MAX_OPEN_DESC 1024
+
+#define THREAD_PRIORITY_LOW 20
+#define THREAD_PRIORITY_HIGH 50
 
 typedef struct arguments
 {
@@ -58,6 +62,8 @@ void clean_all_fds(int fd[],int count)
 		close(fd[i]);
 	}
 }
+
+
 
 
 

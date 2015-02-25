@@ -159,10 +159,10 @@ void client_function(void* var)
 
 int main()
 {
-	int open_desc[1];
-	int open_desc_count;
+	// Signal handlers registration
 	sigignore(SIGPIPE);
 	signal(SIGTERM, sig_term_handler);
+
 	// Change the current working directory to the FILES folder.
 	if( chdir("../FTP_FILES") == -1 )
 	{
@@ -181,6 +181,7 @@ int main()
 	Bind(listen_sock, (struct sockaddr*)&server_addr, sizeof(server_addr));
 	Listen(listen_sock, BACKLOG);
 	printf("FTP SERVER STARTED\n");
+	
 	// thread id
 	pthread_t pid;
 	pthread_attr_t attr;
@@ -194,30 +195,28 @@ int main()
 	printf("Stack size set to 512 KB\n");
 	// Set MAX FD's to 50000
 	struct rlimit res;
-	res.rlim_cur = 50000;
-	res.rlim_max = 50000;
+	res.rlim_cur = 100000;
+	res.rlim_max = 100000;
 	if( setrlimit(RLIMIT_NOFILE, &res) == -1 )
 	{
 		perror("Resource FD limit");
 		exit(0);
 	}
-	printf("FD limit set to 50000\n");
-	// Create a client addr structure
-	struct sockaddr_in client_addr;
-	int client_addr_len = 0;
-	int client_sock;
+	printf("FD limit set to 100000\n");
 	// Monitoring thread
 	if( pthread_create(&pid, &attr, (void*)monitoring_thread, NULL ) != 0 )
         {
         	perror("pthread create in main");
         	close(client_sock);
         }
+
+	// Create a client sock fd array and send that array to a thread.
 	
 	// Accept the connections
 	while( TRUE )
 	{
 		//printf("LISTENING FOR CLIENTS\n");
-		client_sock = Accept(listen_sock, (struct sockaddr*)&client_addr, &client_addr_len);
+		client_sock = Accept(listen_sock, NULL, &client_addr_len);
 		if( client_sock == -1 )
 		{
 			continue;

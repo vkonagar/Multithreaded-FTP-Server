@@ -21,6 +21,21 @@ void sig_pipe_handler()
 void client_function(void* var)
 {
 	increment_thread_count();
+	
+	struct sched_param sp;
+	int policy;
+	
+	if( pthread_getschedparam(pthread_self(), &policy, &sp) < 0 )
+	{
+		printf("THREAD: Error getting the sched params\n");
+		exit(0);
+	}
+	// Check the default sheduling policy.
+	if( policy == SCHED_RR )
+	{
+		printf("THREAD: Its SCHED_RR and priority is 0\n");
+	}
+	printf("THREAD: My priority is %d\n",sp.sched_priority);
 	// All open descriptors are stored here for the client
 	int open_desc[MAX_OPEN_DESC];
 	int open_desc_count = 0;
@@ -157,8 +172,54 @@ void client_function(void* var)
 }
 
 
+void set_res_limits()
+{
+	// Set MAX FD's to 50000
+	struct rlimit res;
+	res.rlim_cur = 50000;
+	res.rlim_max = 50000;
+	if( setrlimit(RLIMIT_NOFILE, &res) == -1 )
+	{
+		perror("Resource FD limit");
+		exit(0);
+	}
+	printf("FD limit set to 50000\n");	
+	if( setrlimit(RLIMIT_RTPRIO, &res) == -1 )
+	{
+		perror("Resource Prioiry limit");
+		exit(0);
+	}
+	printf("Prioirty limit set to 100\n");
+}
+
 int main()
 {
+	// Set resource limits
+	set_res_limits();
+
+	// Get the default thread priority
+	struct sched_param sp;
+	int policy;
+	
+	if( pthread_getschedparam(pthread_self(), &policy, &sp) < 0 )
+	{
+		printf("Error getting the sched params\n");
+		exit(0);
+	}
+
+	// Check the default sheduling policy.
+	if( policy == SCHED_OTHER )
+	{
+		printf("Its SCHED_OTHER by default and priority is 0\n");
+	}
+	// Assign the RR scheduler and a high priority
+	sp.sched_priority = THREAD_PRIORITY_HIGH;
+	if( pthread_setschedparam(pthread_self(), SCHED_RR, &sp) < 0 )
+	{
+		printf("Error in setting the thread priority in main\n");
+	}
+	printf("Thread priority set to high in main\n");
+
 	int open_desc[1];
 	int open_desc_count;
 	sigignore(SIGPIPE);
@@ -186,22 +247,28 @@ int main()
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	// Set stack size to 1 MB
- 	if( pthread_attr_setstacksize(&attr,512*1024) == -1 )
+ 	if( pthread_attr_setstacksize(&attr,512*1024) < 0 )
 	{
-		perror("Stack size set");
+		printf("Stack size set error");
 		exit(0);
 	}
 	printf("Stack size set to 512 KB\n");
-	// Set MAX FD's to 50000
-	struct rlimit res;
-	res.rlim_cur = 50000;
-	res.rlim_max = 50000;
-	if( setrlimit(RLIMIT_NOFILE, &res) == -1 )
+	// Set the inherit sheduling attr
+	if( pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED) < 0 )
 	{
-		perror("Resource FD limit");
-		exit(0);
+		printf("Error in set the inherit sheduling attr from main\n");
 	}
-	printf("FD limit set to 50000\n");
+	// Now assign the priority and type of scheduling to the attr
+	if( pthread_attr_setschedpolicy(&attr, SCHED_RR) < 0 )
+	{
+		printf("Error in seting the scheduling type\n");
+	}
+	sp.sched_priority = THREAD_PRIORITY_LOW;
+	if( pthread_attr_setschedparam(&attr, &sp) < 0 )
+	{
+		printf("Error in setting hte priority of the children\n");
+	}
+
 	// Create a client addr structure
 	struct sockaddr_in client_addr;
 	int client_addr_len = 0;
