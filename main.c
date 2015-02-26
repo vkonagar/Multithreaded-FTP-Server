@@ -33,9 +33,9 @@ void client_function(void* var)
 	// Check the default sheduling policy.
 	if( policy == SCHED_RR )
 	{
-		printf("THREAD: Its SCHED_RR\n");
+		//printf("THREAD: Its SCHED_RR\n");
 	}
-	printf("THREAD: My priority is %d\n",sp.sched_priority);
+//	printf("THREAD: My priority is %d\n",sp.sched_priority);
 	// All open descriptors are stored here for the client
 	int open_desc[MAX_OPEN_DESC];
 	int open_desc_count = 0;

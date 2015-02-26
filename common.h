@@ -20,7 +20,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#define BACKLOG 100
+#define BACKLOG 100000
 #define MAX_OPEN_DESC 1024
 
 #define THREAD_PRIORITY_LOW 20
