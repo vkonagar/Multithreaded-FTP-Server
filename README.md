@@ -1,22 +1,21 @@
 # Multithreaded FTP server
-A tiny multithreaded FTP server, which is efficient, fast, scalable. It handles most of the major commands like LIST, RETR, PORT etc. It can handle only active mode. It is used to test a large number of client sessions through some middle box like NAT to the server and check for the performance.
+A light-weight multithreaded FTP server, supports standardized FTP protocol features such as LIST, RETR, PORT etc. Currently, the implementation only supports FTP Active mode. The server helps perform large-scale NAT stress testing. 
 
 ### Setup and how to run
-* run make to compile the code.
-* run ftp_server( executable ) file.
+* 'make' to compile the code.
+* 'ftp_server' runs the server
 
 ### File serve directory
-* it only serves files on the directory named FTP_FILES on previous (..) to the current directory where the exe is run.
-* Directory can be changed in the code.
+* File serving directory 'FTP_FILES' must be created on previous (..) to the current directory.
 
-### Architecture details.
+### Misc details.
 * A new thread is spawned for each client.
 * ulimits of the server are raised.
 * ulimit -s 512 will decrease the stack size from the default ( 8MB ) to 512KB.
-* ulimit -n 100000 will increase the no of open file descriptors for a process from default(1024) to 1 Lakh.
-* ramdisk is also added at the FTP_FILES directory to optimise the file IO.
-* Also tune the socket buffers to allow lot of space for the TCP buffers.
-* Monitoring thread monitors the number of threads currently live on the server, serving the clients.
+* ulimit -n 100000 will increase number of open file descriptors for a process from 1024 to 100,000.
+* Added ramdisk for the FTP_FILES directory which optimises file IO.
+* Increase socket buffers for TCP.
+* Thread monitoring support is added.
 
 ### Links 
 * [1]: http://www.cyberciti.biz/faq/linux-increase-the-maximum-number-of-open-files/
